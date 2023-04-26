@@ -9,6 +9,8 @@
 #define ADAFRUIT_LCD_BACKPACK_INTERFACE_H_
 
 
+#define ENABLE              0x20    //Mask to set ENABLE (E) bit high
+
 
 //Sets interface data length
 #define LCD_FUNCTION_SET    0x20    //Values below can be used to choose number of lines and font

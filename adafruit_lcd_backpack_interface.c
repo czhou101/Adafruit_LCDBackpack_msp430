@@ -26,7 +26,8 @@ void spi_send(const uint8_t data){
 
 
 /**
- * Initializes SPI in 4-wire mode, SIMO on 1.4, CLK on 1.6, STE on 1.7, SOMI not used
+ * Initializes SPI on eUSCI_A0 in 4-wire mode.
+ * SIMO (DAT) on 1.4, CLK (CLK) on 1.6, STE (LAT) on 1.7, SOMI not used
  */
 void init_spi(void){
     P1SEL0 |= BIT4 | BIT6 | BIT7; // We are using 4-wire spi mode, SIMO on 1.4, CLK on 1.6, STE on 1.7
@@ -48,9 +49,9 @@ void init_spi(void){
  */
 void command_4bits(uint8_t data) {
     data = (data << 1) | 0x01;
-    spi_send(data);
+    spi_send(data);     //We must pulse the ENABLE (E) bit while the data is stable for the LCD to register the command
     __delay_cycles(100);
-    spi_send(data | 0b00100000); //pulse enable
+    spi_send(data | ENABLE); //pulse the ENABLE (E) bit
     __delay_cycles(100);
     spi_send(data);
     __delay_cycles(100); //wait some time for spi send to finish
@@ -74,24 +75,24 @@ void command(uint8_t data) {
  *  - ch: char to write
  */
 void write_char(unsigned char ch) {
-    uint8_t chLowData = ((ch & 0x0F) << 1) | 0x41;
+    uint8_t chLowData = ((ch & 0x0F) << 1) | 0x41;  //Send the character data in two 4-bit chunks
     uint8_t chHighData = ((ch >> 3) & 0x1E) | 0x41;
 
 
-    spi_send(chHighData);
+    spi_send(chHighData);   //We must pulse the ENABLE (E) bit while the data is stable for the LCD to register the data sent
     __delay_cycles(100);
-    spi_send(chHighData | 0b00100000); //pulse enable
+    spi_send(chHighData | ENABLE); //pulse the ENABLE (E) bit
     __delay_cycles(100);
     spi_send(chHighData);
-    __delay_cycles(100); //wait some time for spi send to finish
+    __delay_cycles(100);    //wait some time for spi send to finish
 
 
     spi_send(chLowData);
     __delay_cycles(100);
-    spi_send(chLowData | 0b00100000); //pulse enable
+    spi_send(chLowData | ENABLE); //pulse the ENABLE (E) bit
     __delay_cycles(100);
     spi_send(chLowData);
-    __delay_cycles(100); //wait some time for spi send to finish
+    __delay_cycles(100);    //wait some time for spi send to finish
 }
 
 
@@ -137,8 +138,8 @@ void init_LCD(void) {
 
     command(LCD_CLEAR_DISPLAY); //clear the display
 
-    __delay_cycles(3000); //this command takes a while!
+    __delay_cycles(3000); //The clear command takes a while!
 
-    command(LCD_ENTRYMODE_SET | LCD_CURSOR_INCR); //LCD entry mode set: cursor increments
+    command(LCD_ENTRYMODE_SET | LCD_CURSOR_INCR); //LCD entry mode set: cursor in increment mode
 
 }
