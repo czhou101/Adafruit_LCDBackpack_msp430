@@ -1,6 +1,6 @@
 # Adafruit_LCDBackpack_msp430
 
-This is an interface for the Adafruit Character LCD Backpack (https://learn.adafruit.com/i2c-spi-lcd-backpack) when the backpack is in SPI mode. 
+This is an interface for the Adafruit Character LCD Backpack (https://learn.adafruit.com/i2c-spi-lcd-backpack) when the backpack is in SPI mode. An example of usage is found in main.c.
 
 The code is written for MSP430fr2433, but can be changed to work with other MSP430s by changing the SPI initialization in adafruit_lcd_backpack_interface.c.
 
