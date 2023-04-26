@@ -6,8 +6,7 @@ The code is written for MSP430fr2433, but can be changed to work with other MSP4
 
 
 # Notes
-During initialization of the LCD and when writing to the LCD, data is sent in 8-bit chunks:
- - X (don't care value)
+During initialization of the LCD and when writing to the LCD, data is sent in 7-bit chunks:
  - RS (0/1 for sending commands/data)
  - E (must be pulsed while data is stable, see page 52 and figure 25 of HD77480 datasheet)
  - D7 (data bit)
