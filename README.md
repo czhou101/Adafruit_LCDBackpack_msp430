@@ -8,7 +8,7 @@ The code is written for the MSP430fr2433, but can be changed to work with other 
 # Notes
 During initialization of the LCD and when writing to the LCD, data is sent to the LCD through the backpack in 8-bit chunks:
  - X (don't care value, first bit is not connected)
- - RS (0/1 for sending commands/data)
+ - RS (0: write to instruction register (for sending commands) 1: write to data register (for writing text))
  - E (must be pulsed while data is stable, see page 52 and figure 25 of HD77480 datasheet)
  - D7 (data bit)
  - D6 (data bit)
