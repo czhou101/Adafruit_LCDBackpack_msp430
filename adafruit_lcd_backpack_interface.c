@@ -1,0 +1,144 @@
+/*
+ * adafruit_lcd_backpack_interface.c
+ *
+ *  Created on: Apr 26, 2023
+ *      Author: Chris Zhou
+ */
+
+
+//Assumes LCD backpack is in SPI mode
+
+
+#include <msp430.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <adafruit_lcd_backpack_interface.h>
+
+
+/**
+ * Sends 8 bits of data through SPI, LSB first
+ * Inputs:
+ *  - data: data to be sent
+ */
+void spi_send(const uint8_t data){
+    UCA0TXBUF = data;
+}
+
+
+/**
+ * Initializes SPI in 4-wire mode, SIMO on 1.4, CLK on 1.6, STE on 1.7, SOMI not used
+ */
+void init_spi(void){
+    P1SEL0 |= BIT4 | BIT6 | BIT7; // We are using 4-wire spi mode, SIMO on 1.4, CLK on 1.6, STE on 1.7
+
+    UCA0CTLW0 |= UCSWRST; // reset
+    UCA0CTLW0 |= UCCKPH | UCMST | UCSYNC | UCMODE_2; // data cap on 1st clk edge, LSB first, master mode, synchronous, 4-wire spi mode w/STE active low
+    UCA0CTLW0 |= UCSSEL__SMCLK | UCSTEM; // select SMCLK, STE generates enable signal in 4-wire spi mode
+    UCA0BR0 = 0x01; // set clk divider
+    UCA0BR1 = 0; //
+    UCA0MCTLW = 0; // No modulation
+    UCA0CTLW0 &= ~UCSWRST; // Initialize USCI state machine
+}
+
+
+/**
+ * Sends a 4-bit command to the backpack
+ * Inputs:
+ *  - data: 4-bit command to be sent
+ */
+void command_4bits(uint8_t data) {
+    data = (data << 1) | 0x01;
+    spi_send(data);
+    __delay_cycles(100);
+    spi_send(data | 0b00100000); //pulse enable
+    __delay_cycles(100);
+    spi_send(data);
+    __delay_cycles(100); //wait some time for spi send to finish
+}
+
+
+/**
+ * Sends an 8-bit command to the backpack in two 4-bit chunks
+ * Inputs:
+ *  - data: 8-bit command to be sent
+ */
+void command(uint8_t data) {
+    command_4bits(data >> 4);
+    command_4bits(data & 0x0F);
+}
+
+
+/**
+ * Writes a single char to the lcd display
+ * Inputs:
+ *  - ch: char to write
+ */
+void write_char(unsigned char ch) {
+    uint8_t chLowData = ((ch & 0x0F) << 1) | 0x41;
+    uint8_t chHighData = ((ch >> 3) & 0x1E) | 0x41;
+
+
+    spi_send(chHighData);
+    __delay_cycles(100);
+    spi_send(chHighData | 0b00100000); //pulse enable
+    __delay_cycles(100);
+    spi_send(chHighData);
+    __delay_cycles(100); //wait some time for spi send to finish
+
+
+    spi_send(chLowData);
+    __delay_cycles(100);
+    spi_send(chLowData | 0b00100000); //pulse enable
+    __delay_cycles(100);
+    spi_send(chLowData);
+    __delay_cycles(100); //wait some time for spi send to finish
+}
+
+
+/**
+ * Writes a string to the lcd display
+ * Inputs:
+ *  - str[]: String to write
+ */
+void write_string(char str[]) {
+    int i;
+    for (i = 0; str[i] != '\0'; i++){
+      write_char(str[i]);
+    }
+}
+
+
+/**
+ * Initializes the LCD in 4-bit mode, mostly following the flowchart on page 46 of the HD44780 datasheet
+ */
+void init_LCD(void) {
+    //wait at least 40 ms after VCC reaches 2.7V
+    __delay_cycles(60000);
+
+    //follow chart on HD44780 datasheet pg 46 to initialize LCD
+    command_4bits(0x03); //x x x x DB7 DB6 DB5 DB4 = 0011, see page 46
+
+    //delay at least 4.1 ms
+    __delay_cycles(6000);
+    command_4bits(0x03);
+
+    //delay at least 100 microseconds
+    __delay_cycles(200);
+    command_4bits(0x03);
+
+
+    command_4bits(0x02); //put lcd in 4-bit mode
+
+
+    //now we can start issuing commands to configure the lcd
+    command(LCD_FUNCTION_SET | LCD_2_LINES); //LCD function set: 4-bits, 2 lines, 5x8 font
+
+    command(LCD_DISPLAY_CTRL | LCD_DISPLAY_ON); //LCD display control: turn display on (we differ from the flowchart here, turn display on instead of off)
+
+    command(LCD_CLEAR_DISPLAY); //clear the display
+
+    __delay_cycles(3000); //this command takes a while!
+
+    command(LCD_ENTRYMODE_SET | LCD_CURSOR_INCR); //LCD entry mode set: cursor increments
+
+}
